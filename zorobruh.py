@@ -5,11 +5,9 @@ import re
 
 api_id = 20405128
 api_hash = '9cfe367412e0a6f6ddda736fed9cb770'
-phone_number = '+916380102489'  # Replace with your phone number
-
 class FishingBot:
     def __init__(self):
-        self.session_file = f'session.+916380102489.session'
+        self.session_file = 'zorobruh'
         self.client = TelegramClient(self.session_file, api_id, api_hash)
         self.stop_fishing = False
 
