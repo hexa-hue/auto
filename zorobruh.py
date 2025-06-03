@@ -1,6 +1,7 @@
 import asyncio
 import random
 from telethon import TelegramClient
+from telethon.sessions import StringSession
 import re
 
 api_id = 20405128
