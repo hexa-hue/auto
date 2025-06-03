@@ -8,7 +8,7 @@ api_id = 20405128
 api_hash = '9cfe367412e0a6f6ddda736fed9cb770'
 class FishingBot:
     def __init__(self):
-        self.client = TelegramClient(StringSession('1BVtsOHYBuzLu1UrJ0Behet64EDvSwcbM8uW67Dnifk5oDxYaxzxRGHvsSUigQuvQP-5CIjqK7jlmh0GnB_hbD4iZ5piPO9Tsd1wK1B0e7sUgRchz-r4dzA3vdr1a5sMoYHo8P-SvRLOOHUorOXeT32kIuEE0-io1WSi_p2dOQ75E6qUgTDlqkRCvPedgKX9Ni23Or5uuYuoEiVaq2y7edBj9J22NC_6SzCElo4NT39DgKROCN6IiVsW7rYSOU3dQrRrSBnL9uZ19ufeXJNDmhtCGOp_k2jyIL_GuSt0_zg7WcQ6X_u_EEgf8Ov8GTx_0FKxw4hhHpQg7n2EOvnImQo2eij7ccgA='), api_id, api_hash)
+        self.client = TelegramClient(StringSession('1BVtsOLQBuz7sYvm0d-1IdLqZ0ldxYBwaRk9mS3lqJWyKeq-hLEn8-_6KbQ2OVFuy47ZMjMGTq3l4jBO-zA-yvK7cE_JlTix00gPdXCUQO1PMy9DbsuLJjA2XHtjwNiHDJSfpcFYNB-3g_lXvNDiap-wzgXdPQpgRFCJmxYsx5JEOmPwNbEa6MHkkrRl0ZZjJTzqkfGNvF_kgiLQfEMUUB6TdhRBLEV7xnSmn2BteDwQIliQyXdcny228rXe4hc95oDCwwesxWRS1euGlIgEyAh4vLmlSUt5F0LTZudJXihOTgntxhs5Yfh5XP87ixNvttI_lgyTNfHn4xb6ka7Wx1vfoKvN9928='), api_id, api_hash)
         self.stop_fishing = False
 
     async def start_fishing(self):
