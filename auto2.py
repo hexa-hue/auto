@@ -169,9 +169,7 @@ class HuntingBot:
 # === Main Runner ===
 async def main():
     client = TelegramClient(
-        StringSession('1BVtsOHwBuxGUAgfewg2-D9euQZF29QYlz1iSqnauguaGs0GelNXs6VpXBx3Przr1bih5dUmPqJijLPMe0bAkVN3qgM31-z-t-bng4TTbix3wSRGn0SzgHn8GD7aCSQUjlCkZJfTaJ73HM21nf2ytrbSY6VH965HfMX8x4z_iM09TpebotmH9svBH5WDqS67kyDDQ4vNIa_xW2SoHKOMIjXFMRhd1S_WGFdehK5D4SnCV1Jqu3OMb8d3Vuqvqur-LMJKOjSmPD15kkAmPMaOipKEXRQmq16iWQt_FvE1QYiDYI1ADP9YEa7JzORmgkm6s6zYXQHzVI7zRRzBapuKhDKJDtHMCax0='),
-        api_id, api_hash
-    )
+        StringSession('1BVtsOHwBuxGUAgfewg2-D9euQZF29QYlz1iSqnauguaGs0GelNXs6VpXBx3Przr1bih5dUmPqJijLPMe0bAkVN3qgM31-z-t-bng4TTbix3wSRGn0SzgHn8GD7aCSQUjlCkZJfTaJ73HM21nf2ytrbSY6VH965HfMX8x4z_iM09TpebotmH9svBH5WDqS67kyDDQ4vNIa_xW2SoHKOMIjXFMRhd1S_WGFdehK5D4SnCV1Jqu3OMb8d3Vuqvqur-LMJKOjSmPD15kkAmPMaOipKEXRQmq16iWQt_FvE1QYiDYI1ADP9YEa7JzORmgkm6s6zYXQHzVI7zRRzBapuKhDKJDtHMCax0='),api_id, api_hash)
     await client.start()
 
     fishing_bot = FishingBot(client)
@@ -181,6 +179,6 @@ async def main():
         fishing_bot.start_fishing(),
         hunting_bot.start_hunting()
     )
-
+    await client.run_until_disconnected()
 if __name__ == '__main__':
     asyncio.run(main())
