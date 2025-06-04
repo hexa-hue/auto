@@ -1,52 +1,65 @@
 import asyncio
 import random
 import re
-from telethon import TelegramClient
+from telethon import TelegramClient, events
 from telethon.sessions import StringSession
-from telethon import events
+
 api_id = 20405128
 api_hash = '9cfe367412e0a6f6ddda736fed9cb770'
-# Shared session for both bots
+
+# === SETTINGS ===
+LOG_GROUP_ID = -4699934526  # Replace with your log group ID
+
+# === Fishing Bot ===
 class FishingBot:
     def __init__(self, client):
         self.client = client
         self.stop_fishing = False
+        self.response_received = False
+        self.failed_attempts = 0
+        self.bot_entity = None
 
     async def start_fishing(self):
-        bot = await self.client.get_entity('@roronoa_zoro_robot')
-
+        self.bot_entity = await self.client.get_entity('@roronoa_zoro_robot')
         while not self.stop_fishing:
             for _ in range(10):
-                await self.client.send_message(bot, '/fish')
+                self.response_received = False
+                await self.client.send_message(self.bot_entity, '/fish')
                 await asyncio.sleep(random.uniform(2, 5))
 
-                messages = await self.client.get_messages(bot, limit=2)
+                messages = await self.client.get_messages(self.bot_entity, limit=2)
                 for message in messages:
                     msg_text = message.message.lower()
 
-                    # Cooldown detection
                     if 'your rod is broken' in msg_text:
-                        print(f"[Cooldown] {msg_text}")
                         cooldown_time = self.extract_cooldown_time(msg_text)
-                        print(f"Waiting {cooldown_time} seconds...")
-                        await self.client.send_message(bot, '/dart')
+                        await self.client.send_message(self.bot_entity, '/dart')
                         await asyncio.sleep(cooldown_time)
+                        self.response_received = True
                         break
 
-                    # Detect and stop duplicate fishing
                     if '/stopfish' in msg_text:
-                        print("[Info] Already fishing. Sending /stopfish.")
-                        await self.client.send_message(bot, '/stopfish')
+                        await self.client.send_message(self.bot_entity, '/stopfish')
                         await asyncio.sleep(random.uniform(3, 6))
+                        self.response_received = True
                         break
 
-                    # Click available buttons (e.g., to reel in fish)
                     if message.buttons:
                         for row in message.buttons:
                             for button in row:
-                                print(f"[Clicking] {button.text}")
                                 await message.click(0)
                                 await asyncio.sleep(random.uniform(2, 4))
+                                self.response_received = True
+
+                if self.response_received:
+                    self.failed_attempts = 0
+                else:
+                    self.failed_attempts += 1
+                    print(f"[FishingBot] No response, failed_attempts = {self.failed_attempts}")
+                    if self.failed_attempts >= 5:
+                        await self.client.send_message(LOG_GROUP_ID, "bot ded @peeekahboo (fishing)")
+                        self.stop_fishing = True
+                        break
 
     def extract_cooldown_time(self, text):
         match = re.search(r'(\d+)m[: ]?(\d+)s', text)
@@ -56,27 +69,31 @@ class FishingBot:
         return int(match.group(1)) if match else 60
 
 
+# === Hunting Bot ===
 class HuntingBot:
     def __init__(self, client):
         self.client = client
         self.stop_hunting = False
         self.pause_event = asyncio.Event()
-        self.pause_event.set()  # Unpaused by default
+        self.pause_event.set()
+        self.response_received = False
+        self.failed_attempts = 0
+        self.bot_entity = None
 
     async def start_hunting(self):
-        # Register the command handler here using Telethon's event system
         self.client.add_event_handler(self.command_handler, events.NewMessage)
+        self.bot_entity = await self.client.get_entity('@HeXamonbot')
 
-        bot_entity = await self.client.get_entity('@HeXamonbot')
         while not self.stop_hunting:
-            await self.pause_event.wait()  # Pauses here if `.pause` was issued
+            await self.pause_event.wait()
 
-            last_messages = await self.client.get_messages(bot_entity, limit=2)
-            shiny_found = any('✨' in message.message.lower() for message in last_messages)
+            self.response_received = False
+            last_messages = await self.client.get_messages(self.bot_entity, limit=2)
+
+            shiny_found = any('✨' in m.message.lower() for m in last_messages)
             if shiny_found:
                 self.stop_hunting = True
-                await self.client.send_message(-4699934526, "@peeekahboo shiny found da")
-                print('Shiny Pokémon found! Pausing hunting...')
+                await self.client.send_message(LOG_GROUP_ID, "@peeekahboo shiny found da")
                 break
 
             for message in last_messages:
@@ -84,33 +101,44 @@ class HuntingBot:
 
             if not self.stop_hunting:
                 await self.client.send_message('@HeXamonbot', '/hunt')
+                await asyncio.sleep(random.randint(2, 6))
 
-            await asyncio.sleep(random.randint(2, 6))
+            if self.response_received:
+                self.failed_attempts = 0
+            else:
+                self.failed_attempts += 1
+                print(f"[HuntingBot] No response, failed_attempts = {self.failed_attempts}")
+                if self.failed_attempts >= 5:
+                    await self.client.send_message(LOG_GROUP_ID, "bot ded @peeekahboo (hunting)")
+                    self.stop_hunting = True
+                    break
 
     async def handle_message(self, message):
-        stop_keywords = ["✨ Shiny", "Daily hunt limit reached"]
-        if any(keyword in message.message for keyword in stop_keywords):
+        if any(keyword in message.message for keyword in ["✨ Shiny", "Daily hunt limit reached"]):
             self.stop_hunting = True
-            print(f"[Stop] Found stop keyword: {message.message}")
         else:
-            print(f"[Hunt Message] {message.message}")
+            self.response_received = True
 
-    async def command_handler(self, event):  # This now only handles text messages
+    async def command_handler(self, event):
         text = event.raw_text.lower()
-
         if text == ".start":
-            print("[Command] Received .start — resuming hunt.")
+            print("[Command] .start — resuming")
+            self.stop_hunting = False
             self.pause_event.set()
         elif text == ".pause":
-            print("[Command] Received .pause — pausing hunt.")
+            print("[Command] .pause — pausing")
             self.pause_event.clear()
 
     async def connect(self):
         await self.client.start()
 
 
+# === Main Runner ===
 async def main():
-    client = TelegramClient(StringSession('1BVtsOHwBuxGUAgfewg2-D9euQZF29QYlz1iSqnauguaGs0GelNXs6VpXBx3Przr1bih5dUmPqJijLPMe0bAkVN3qgM31-z-t-bng4TTbix3wSRGn0SzgHn8GD7aCSQUjlCkZJfTaJ73HM21nf2ytrbSY6VH965HfMX8x4z_iM09TpebotmH9svBH5WDqS67kyDDQ4vNIa_xW2SoHKOMIjXFMRhd1S_WGFdehK5D4SnCV1Jqu3OMb8d3Vuqvqur-LMJKOjSmPD15kkAmPMaOipKEXRQmq16iWQt_FvE1QYiDYI1ADP9YEa7JzORmgkm6s6zYXQHzVI7zRRzBapuKhDKJDtHMCax0='), api_id, api_hash)
+    client = TelegramClient(
+        StringSession('1BVtsOHwBuxGUAgfewg2-D9euQZF29QYlz1iSqnauguaGs0GelNXs6VpXBx3Przr1bih5dUmPqJijLPMe0bAkVN3qgM31-z-t-bng4TTbix3wSRGn0SzgHn8GD7aCSQUjlCkZJfTaJ73HM21nf2ytrbSY6VH965HfMX8x4z_iM09TpebotmH9svBH5WDqS67kyDDQ4vNIa_xW2SoHKOMIjXFMRhd1S_WGFdehK5D4SnCV1Jqu3OMb8d3Vuqvqur-LMJKOjSmPD15kkAmPMaOipKEXRQmq16iWQt_FvE1QYiDYI1ADP9YEa7JzORmgkm6s6zYXQHzVI7zRRzBapuKhDKJDtHMCax0='),
+        api_id, api_hash
+    )
     await client.start()
 
     fishing_bot = FishingBot(client)
