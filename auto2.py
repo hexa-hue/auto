@@ -61,7 +61,7 @@ class FishingBot:
                 else:
                     self.failed_attempts += 1
                     print(f"[FishingBot] No response, failed_attempts = {self.failed_attempts}")
-                    if self.failed_attempts >= 5:
+                    if self.failed_attempts >= 50:
                         await self.client.send_message(LOG_GROUP_ID, "bot ded @peeekahboo (fishing)")
                         self.stop_fishing = True
                         break
