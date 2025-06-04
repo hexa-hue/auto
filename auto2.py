@@ -3,6 +3,7 @@ import random
 import re
 from telethon import TelegramClient
 from telethon.sessions import StringSession
+from telethon import events
 api_id = 20405128
 api_hash = '9cfe367412e0a6f6ddda736fed9cb770'
 # Shared session for both bots
@@ -60,31 +61,31 @@ class HuntingBot:
         self.client = client
         self.stop_hunting = False
         self.pause_event = asyncio.Event()
-        self.pause_event.set()  # Start in unpaused state
+        self.pause_event.set()  # Unpaused by default
 
     async def start_hunting(self):
-        async with self.client:
-            self.client.add_event_handler(self.command_handler)
-            bot_entity = await self.client.get_entity('@HeXamonbot')
+        # Register the command handler here using Telethon's event system
+        self.client.add_event_handler(self.command_handler, events.NewMessage)
 
-            while not self.stop_hunting:
-                await self.pause_event.wait()  # Wait here if paused
+        bot_entity = await self.client.get_entity('@HeXamonbot')
+        while not self.stop_hunting:
+            await self.pause_event.wait()  # Pauses here if `.pause` was issued
 
-                last_messages = await self.client.get_messages(bot_entity, limit=2)
-                shiny_found = any('✨' in message.message.lower() for message in last_messages)
-                if shiny_found:
-                    self.stop_hunting = True
-                    await self.client.send_message(-4699934526, "@ibangchildren shiny found da")
-                    print('Shiny Pokémon found! Pausing hunting...')
-                    break
+            last_messages = await self.client.get_messages(bot_entity, limit=2)
+            shiny_found = any('✨' in message.message.lower() for message in last_messages)
+            if shiny_found:
+                self.stop_hunting = True
+                await self.client.send_message(-4699934526, "@ibangchildren shiny found da")
+                print('Shiny Pokémon found! Pausing hunting...')
+                break
 
-                for message in last_messages:
-                    await self.handle_message(message)
+            for message in last_messages:
+                await self.handle_message(message)
 
-                if not self.stop_hunting:
-                    await self.client.send_message('@HeXamonbot', '/hunt')
+            if not self.stop_hunting:
+                await self.client.send_message('@HeXamonbot', '/hunt')
 
-                await asyncio.sleep(random.randint(2, 6))
+            await asyncio.sleep(random.randint(2, 6))
 
     async def handle_message(self, message):
         stop_keywords = ["✨ Shiny", "Daily hunt limit reached"]
@@ -94,11 +95,13 @@ class HuntingBot:
         else:
             print(f"[Hunt Message] {message.message}")
 
-    async def command_handler(self, event):
-        if event.raw_text.lower() == ".start":
+    async def command_handler(self, event):  # This now only handles text messages
+        text = event.raw_text.lower()
+
+        if text == ".start":
             print("[Command] Received .start — resuming hunt.")
             self.pause_event.set()
-        elif event.raw_text.lower() == ".pause":
+        elif text == ".pause":
             print("[Command] Received .pause — pausing hunt.")
             self.pause_event.clear()
 
