@@ -7,8 +7,6 @@ from telethon.sessions import StringSession
 api_id = 20405128
 api_hash = '9cfe367412e0a6f6ddda736fed9cb770'
 LOG_GROUP_ID = -4699934526  # Replace with your log group ID
-
-# === Fishing Bot ===
 class FishingBot:
     def __init__(self, client):
         self.client = client
