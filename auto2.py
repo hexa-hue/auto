@@ -2,13 +2,10 @@ import asyncio
 import random
 import re
 from telethon import TelegramClient
+from telethon.sessions import StringSession
 api_id = 20405128
 api_hash = '9cfe367412e0a6f6ddda736fed9cb770'
-phone_number = '+916380102489'
-session_file = 'bruhboth'
-
 # Shared session for both bots
-
 class FishingBot:
     def __init__(self, client):
         self.client = client
@@ -62,17 +59,23 @@ class HuntingBot:
     def __init__(self, client):
         self.client = client
         self.stop_hunting = False
+        self.pause_event = asyncio.Event()
+        self.pause_event.set()  # Start in unpaused state
 
     async def start_hunting(self):
         async with self.client:
+            self.client.add_event_handler(self.command_handler)
             bot_entity = await self.client.get_entity('@HeXamonbot')
+
             while not self.stop_hunting:
+                await self.pause_event.wait()  # Wait here if paused
+
                 last_messages = await self.client.get_messages(bot_entity, limit=2)
                 shiny_found = any('✨' in message.message.lower() for message in last_messages)
                 if shiny_found:
                     self.stop_hunting = True
                     await self.client.send_message(-4699934526, "@ibangchildren shiny found da")
-                    print('Shiny Pokemon found in last messages!')
+                    print('Shiny Pokémon found! Pausing hunting...')
                     break
 
                 for message in last_messages:
@@ -80,32 +83,31 @@ class HuntingBot:
 
                 if not self.stop_hunting:
                     await self.client.send_message('@HeXamonbot', '/hunt')
-                gap = random.randint(2, 6)
-                await asyncio.sleep(gap)
+
+                await asyncio.sleep(random.randint(2, 6))
 
     async def handle_message(self, message):
-        stop_keywords = [
-            "✨ Shiny", "Daily hunt limit reached"
-        ]
-
+        stop_keywords = ["✨ Shiny", "Daily hunt limit reached"]
         if any(keyword in message.message for keyword in stop_keywords):
             self.stop_hunting = True
-            print(f"Found stopping keyword in message: {message.message}")
+            print(f"[Stop] Found stop keyword: {message.message}")
         else:
-            print(f"Received message: {message.message}")
+            print(f"[Hunt Message] {message.message}")
+
+    async def command_handler(self, event):
+        if event.raw_text.lower() == ".start":
+            print("[Command] Received .start — resuming hunt.")
+            self.pause_event.set()
+        elif event.raw_text.lower() == ".pause":
+            print("[Command] Received .pause — pausing hunt.")
+            self.pause_event.clear()
 
     async def connect(self):
         await self.client.start()
-        # Handle OTP and TFA code if required
-        # Your code logic here
-
-    def close(self):
-        self.stop_hunting = True
-        self.client.disconnect()
 
 
 async def main():
-    client = TelegramClient(session_file, api_id, api_hash)
+    client = TelegramClient(StringSession('1BVtsOHwBuxGUAgfewg2-D9euQZF29QYlz1iSqnauguaGs0GelNXs6VpXBx3Przr1bih5dUmPqJijLPMe0bAkVN3qgM31-z-t-bng4TTbix3wSRGn0SzgHn8GD7aCSQUjlCkZJfTaJ73HM21nf2ytrbSY6VH965HfMX8x4z_iM09TpebotmH9svBH5WDqS67kyDDQ4vNIa_xW2SoHKOMIjXFMRhd1S_WGFdehK5D4SnCV1Jqu3OMb8d3Vuqvqur-LMJKOjSmPD15kkAmPMaOipKEXRQmq16iWQt_FvE1QYiDYI1ADP9YEa7JzORmgkm6s6zYXQHzVI7zRRzBapuKhDKJDtHMCax0='), api_id, api_hash)
     await client.start()
 
     fishing_bot = FishingBot(client)
