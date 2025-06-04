@@ -75,7 +75,7 @@ class HuntingBot:
             shiny_found = any('✨' in message.message.lower() for message in last_messages)
             if shiny_found:
                 self.stop_hunting = True
-                await self.client.send_message(-4699934526, "@ibangchildren shiny found da")
+                await self.client.send_message(-4699934526, "@peeekahboo shiny found da")
                 print('Shiny Pokémon found! Pausing hunting...')
                 break
 
