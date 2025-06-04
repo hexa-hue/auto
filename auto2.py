@@ -13,16 +13,19 @@ class FishingBot:
     def __init__(self, client):
         self.client = client
         self.stop_fishing = False
-        self.response_received = False
-        self.failed_attempts = 0
         self.pause_event = asyncio.Event()
         self.pause_event.set()
+        self.response_received = False
+        self.failed_attempts = 0
+        self.fishing_task = None
         self.bot_entity = None
 
     async def start_fishing(self):
         self.bot_entity = await self.client.get_entity('@roronoa_zoro_robot')
         self.client.add_event_handler(self.command_handler, events.NewMessage)
+        self.fishing_task = asyncio.create_task(self.fishing_loop())
 
+    async def fishing_loop(self):
         while not self.stop_fishing:
             await self.pause_event.wait()
 
@@ -74,12 +77,20 @@ class FishingBot:
 
     async def command_handler(self, event):
         text = event.raw_text.lower()
+
         if text == ".startfishing":
-            print("[Command] .startfishing — resuming fishing")
-            self.stop_fishing = False
-            self.pause_event.set()
+            if self.fishing_task is None or self.fishing_task.done():
+                print("[Command] Restarting fishing loop")
+                self.stop_fishing = False
+                self.pause_event.set()
+                self.fishing_task = asyncio.create_task(self.fishing_loop())
+            else:
+                print("[Command] Resuming fishing loop")
+                self.stop_fishing = False
+                self.pause_event.set()
+
         elif text == ".pausefishing":
-            print("[Command] .pausefishing — pausing fishing")
+            print("[Command] Pausing fishing")
             self.pause_event.clear()
 
 # === Hunting Bot ===
@@ -88,32 +99,33 @@ class HuntingBot:
         self.client = client
         self.stop_hunting = False
         self.pause_event = asyncio.Event()
-        self.pause_event.set()
+        self.pause_event.set()  # Unpaused by default
         self.response_received = False
         self.failed_attempts = 0
+        self.hunting_task = None
         self.bot_entity = None
 
     async def start_hunting(self):
         self.bot_entity = await self.client.get_entity('@HeXamonbot')
         self.client.add_event_handler(self.command_handler, events.NewMessage)
+        self.hunting_task = asyncio.create_task(self.hunting_loop())
 
+    async def hunting_loop(self):
         while not self.stop_hunting:
             await self.pause_event.wait()
-            self.response_received = False
 
             last_messages = await self.client.get_messages(self.bot_entity, limit=2)
-            shiny_found = any('✨' in m.message.lower() for m in last_messages)
+            shiny_found = any('✨' in message.message.lower() for message in last_messages)
+
             if shiny_found:
                 self.stop_hunting = True
-                await self.client.send_message(LOG_GROUP_ID, "@peeekahboo shiny found da")
+                await self.client.send_message(-4699934526, "@peeekahboo shiny found da")
+                print('Shiny Pokémon found! Pausing hunting...')
                 break
 
+            self.response_received = False
             for message in last_messages:
                 await self.handle_message(message)
-
-            if not self.stop_hunting:
-                await self.client.send_message('@HeXamonbot', '/hunt')
-                await asyncio.sleep(random.randint(2, 6))
 
             if self.response_received:
                 self.failed_attempts = 0
@@ -121,24 +133,39 @@ class HuntingBot:
                 self.failed_attempts += 1
                 print(f"[HuntingBot] No response, failed_attempts = {self.failed_attempts}")
                 if self.failed_attempts >= 5:
-                    await self.client.send_message(LOG_GROUP_ID, "bot ded @peeekahboo (hunting)")
+                    await self.client.send_message(-4699934526, "bot ded @peeekahboo (hunting)")
                     self.stop_hunting = True
                     break
 
+            if not self.stop_hunting:
+                await self.client.send_message(self.bot_entity, '/hunt')
+                await asyncio.sleep(random.randint(2, 6))
+
     async def handle_message(self, message):
-        if any(keyword in message.message for keyword in ["✨ Shiny", "Daily hunt limit reached"]):
+        stop_keywords = ["✨ shiny", "daily hunt limit reached"]
+        if any(keyword in message.message.lower() for keyword in stop_keywords):
             self.stop_hunting = True
-        else:
+            print(f"[Stop] Found stop keyword: {message.message}")
+        elif 'wild' in message.message.lower() or 'has appeared' in message.message.lower():
             self.response_received = True
+            print(f"[Hunt Message] {message.message}")
 
     async def command_handler(self, event):
         text = event.raw_text.lower()
+
         if text == ".start":
-            print("[Command] .start — resuming hunting")
-            self.stop_hunting = False
-            self.pause_event.set()
+            if self.hunting_task is None or self.hunting_task.done():
+                print("[Command] Restarting hunting loop")
+                self.stop_hunting = False
+                self.pause_event.set()
+                self.hunting_task = asyncio.create_task(self.hunting_loop())
+            else:
+                print("[Command] Resuming hunting loop")
+                self.stop_hunting = False
+                self.pause_event.set()
+
         elif text == ".pause":
-            print("[Command] .pause — pausing hunting")
+            print("[Command] Pausing hunting")
             self.pause_event.clear()
 
 # === Main Runner ===
