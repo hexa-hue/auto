@@ -6,8 +6,6 @@ from telethon.sessions import StringSession
 
 api_id = 20405128
 api_hash = '9cfe367412e0a6f6ddda736fed9cb770'
-
-# === SETTINGS ===
 LOG_GROUP_ID = -4699934526  # Replace with your log group ID
 
 # === Fishing Bot ===
@@ -17,11 +15,17 @@ class FishingBot:
         self.stop_fishing = False
         self.response_received = False
         self.failed_attempts = 0
+        self.pause_event = asyncio.Event()
+        self.pause_event.set()
         self.bot_entity = None
 
     async def start_fishing(self):
         self.bot_entity = await self.client.get_entity('@roronoa_zoro_robot')
+        self.client.add_event_handler(self.command_handler, events.NewMessage)
+
         while not self.stop_fishing:
+            await self.pause_event.wait()
+
             for _ in range(10):
                 self.response_received = False
                 await self.client.send_message(self.bot_entity, '/fish')
@@ -68,6 +72,15 @@ class FishingBot:
         match = re.search(r'(\d+)s', text)
         return int(match.group(1)) if match else 60
 
+    async def command_handler(self, event):
+        text = event.raw_text.lower()
+        if text == ".startfishing":
+            print("[Command] .startfishing — resuming fishing")
+            self.stop_fishing = False
+            self.pause_event.set()
+        elif text == ".pausefishing":
+            print("[Command] .pausefishing — pausing fishing")
+            self.pause_event.clear()
 
 # === Hunting Bot ===
 class HuntingBot:
@@ -81,15 +94,14 @@ class HuntingBot:
         self.bot_entity = None
 
     async def start_hunting(self):
-        self.client.add_event_handler(self.command_handler, events.NewMessage)
         self.bot_entity = await self.client.get_entity('@HeXamonbot')
+        self.client.add_event_handler(self.command_handler, events.NewMessage)
 
         while not self.stop_hunting:
             await self.pause_event.wait()
-
             self.response_received = False
-            last_messages = await self.client.get_messages(self.bot_entity, limit=2)
 
+            last_messages = await self.client.get_messages(self.bot_entity, limit=2)
             shiny_found = any('✨' in m.message.lower() for m in last_messages)
             if shiny_found:
                 self.stop_hunting = True
@@ -122,16 +134,12 @@ class HuntingBot:
     async def command_handler(self, event):
         text = event.raw_text.lower()
         if text == ".start":
-            print("[Command] .start — resuming")
+            print("[Command] .start — resuming hunting")
             self.stop_hunting = False
             self.pause_event.set()
         elif text == ".pause":
-            print("[Command] .pause — pausing")
+            print("[Command] .pause — pausing hunting")
             self.pause_event.clear()
-
-    async def connect(self):
-        await self.client.start()
-
 
 # === Main Runner ===
 async def main():
