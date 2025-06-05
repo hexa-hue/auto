@@ -1,0 +1,1 @@
+PhotoSizeProgressive(type='w', w=1920, h=1080, sizes=[28023, 58988, 80904, 113425, 205266])
