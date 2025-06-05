@@ -3,6 +3,7 @@ import re
 import random
 import time
 import asyncio
+import json
 from telethon import TelegramClient, events
 from telethon.sessions import StringSession
 from telethon.tl.types import PhotoStrippedSize
@@ -11,10 +12,29 @@ from telethon.tl.types import PhotoStrippedSize
 api_id = 24797759
 api_hash = '4778e4d11c63dc6f6085876fe586b81d'
 LOG_GROUP_ID = -4699934526
-chatid = -4831451271  # For Pokémon guessing
+chatid = -4885403094  # For Pokémon guessing
 SESSION = '1BVtsOHwBu0QiHpqN-S4rPoYBEf9mDkEdJxrk0BRWtHqa0NKaDh9SUybTlqmoSI0F3MDRoiMsdV_OwkkC3OQ7oYrIVCsUkuieY4vxRes8VJjIpQfAERIKRD7kez6fAcZRmUdvO-ieD02mibnpqHgRjNjKsufzs27a8os_dMlVL4CabBF46IZAzZU7Y1uaEVND1z-OcnIXWVJGGZNE-WQGSi4KVvGbBSGH5V2ZBiw5oj3m7Gl_f1DZ_C40EADkMiBN6gygiU7JRTyrHLP-MmS8fsZLowUloufqxrbFynjqXy-Hj9z37J7OPkrBIxMQ1YTDgX7ZiknDXeeX3yW192mqygZWCajC2sc='
+# === Load Cache ===
+cache = {}
+if os.path.exists("cache.json"):
+    with open("cache.json", "r") as f:
+        cache = json.load(f)
+else:
+    print("No cache.json found, using empty cache")
+
+# === Globals ===
 temp_cache_size = None
-# Create a single shared client instance
+last_guess_time = 0
+guess_timeout = 5
+pending_guess = False
+retry_lock = asyncio.Lock()
+reward_count = 0
+correct_guess_count = 0
+pause_mode = False
+guess_fail_count = 0
+guess_fail_threshold = 10
+
+# === Telegram Client ===
 client = TelegramClient(StringSession(SESSION), api_id, api_hash)
 
 # === Fishing Bot ===
@@ -115,7 +135,7 @@ class HuntingBot:
         while not self.stop_hunting:
             await self.pause_event.wait()
             last_messages = await self.client.get_messages(self.bot_entity, limit=2)
-            shiny_found = any('✨' in message.message.lower() for message in last_messages)
+            shiny_found = any('✨ shiny' in message.message.lower() for message in last_messages)
             if shiny_found:
                 self.stop_hunting = True
                 await self.client.send_message(LOG_GROUP_ID, "@peeekahboo shiny found da")
@@ -162,103 +182,39 @@ class HuntingBot:
             print("[Command] Pausing hunting")
             self.pause_event.clear()
 
-# === Pokémon Guessing ===
-os.makedirs("cache", exist_ok=True)
-os.makedirs("../../saitama", exist_ok=True)
-last_guess_time = 0
-guess_timeout = 5
-pending_guess = False
-retry_lock = asyncio.Lock()
-reward_count = 0
-correct_guess_count = 0
-pause_mode = False
-guess_fail_count = 0
-guess_fail_threshold = 10
-
-async def send_guess_command():
+# === Guess Bot ===
+async def send_guess_command(delay=0):
     global last_guess_time, pending_guess, pause_mode
     if pause_mode:
-        print("Paused. Skipping /guess.")
         return
+    await asyncio.sleep(delay)
     try:
-        await client.send_message(entity=chatid, message='/guess')
-        print("Sent /guess command.")
+        await client.send_message(chatid, '/guess')
         last_guess_time = time.time()
         pending_guess = True
     except Exception as e:
-        print(f"Error in sending /guess: {e}")
-        await asyncio.sleep(3)
-        await send_guess_command()
+        print(f"Error in /guess: {e}")
 
-@client.on(events.NewMessage(from_users=572621020, pattern="Who's that pokemon?", chats=chatid))
+@client.on(events.NewMessage(from_users=572621020, pattern="Who\'s that pokemon?", chats=chatid))
 async def guess_pokemon(event):
-    global temp_cache_size
+    global temp_cache_size, pending_guess, correct_guess_count, reward_count, guess_fail_count
     pending_guess = False
-    print("[Guess] Received 'Who's that pokemon?' event")
-
-    photo = event.message.photo
-    if not photo:
-        print("[Guess] No photo found in message")
-        return
-
-    # Use the largest available size (most detailed)
-    size_obj = photo.sizes[-1]
-    size_str = str(size_obj)
-    print(f"[Guess] Photo size string: {size_str}")
-
-    cached_files = os.listdir("cache/")
-    print(f"[Guess] Cached files: {cached_files}")
-
-    for file in cached_files:
-        try:
-            with open(f"cache/{file}", 'r') as f:
-                cached_size = f.read()
-            if cached_size == size_str:
-                name = file.replace(".txt", "")
-                send_name = "Type: null" if name == "Type_ Null" else name
-                try:
-                    await client.send_message(chatid, send_name)
-                    print(f"[Guess] Sent guess: {send_name}")
-                except Exception as e:
-                    print(f"[Guess] Failed to send guess: {e}")
-                global reward_count, correct_guess_count, guess_fail_count
+    for size in event.message.photo.sizes:
+        if isinstance(size, PhotoStrippedSize):
+            size_str = str(size)
+            if size_str in cache:
+                name = cache[size_str]
+                await client.send_message(chatid, name)
                 reward_count += 5
                 correct_guess_count += 1
                 guess_fail_count = 0
                 await asyncio.sleep(3)
                 await send_guess_command()
                 return
-        except Exception as e:
-            print(f"[Guess] Error reading cache file {file}: {e}")
-
-    # If no match found, store this size for saving later
-    temp_cache_size = size_str
-    print("[Guess] No match found, saved size for later")
-
-
-@client.on(events.NewMessage(from_users=572621020, pattern="The pokemon was ", chats=chatid))
-async def save_pokemon(event):
-    global pending_guess, guess_fail_count, temp_cache_size
-    pending_guess = False
-
-    try:
-        text = event.message.text
-        name = text.split("The pokemon was **")[1].split("**")[0]
-        print(f"[Save] Pokémon name found: {name}")
-    except Exception as e:
-        print(f"[Save] Failed to extract Pokémon name: {e}")
-        return
-
-    try:
-        with open(f"cache/{name}.txt", 'w') as file:
-            file.write(temp_cache_size)
-        print(f"[Save] Saved size for {name}")
-    except Exception as e:
-        print(f"[Save] Failed to save cache file: {e}")
-
-    temp_cache_size = None
-    guess_fail_count = 0
-    await send_guess_command()
+            else:
+                print("Pokémon not found")
+                await asyncio.sleep(60)
+                await send_guess_command()
 
 @client.on(events.NewMessage(pattern=r"\.guess", chats=chatid))
 async def manual_guess(event):
