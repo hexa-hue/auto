@@ -13,7 +13,7 @@ api_id = 24797759
 api_hash = '4778e4d11c63dc6f6085876fe586b81d'
 LOG_GROUP_ID = -4699934526
 chatid = -4831451271# For Pokémon guessing
-SESSION = '1BVtsOHwBu0QiHpqN-S4rPoYBEf9mDkEdJxrk0BRWtHqa0NKaDh9SUybTlqmoSI0F3MDRoiMsdV_OwkkC3OQ7oYrIVCsUkuieY4vxRes8VJjIpQfAERIKRD7kez6fAcZRmUdvO-ieD02mibnpqHgRjNjKsufzs27a8os_dMlVL4CabBF46IZAzZU7Y1uaEVND1z-OcnIXWVJGGZNE-WQGSi4KVvGbBSGH5V2ZBiw5oj3m7Gl_f1DZ_C40EADkMiBN6gygiU7JRTyrHLP-MmS8fsZLowUloufqxrbFynjqXy-Hj9z37J7OPkrBIxMQ1YTDgX7ZiknDXeeX3yW192mqygZWCajC2sc='
+SESSION = '1BVtsOGYBu8b6B0_I4JvY-yo_6ft37uh21MAMh1J-iadg_c9_AW3TKyVfogK36Kd0KWelwf7S4WPYuleDx3kl-m439KgyTLV1b19viLRbT9_GNzeTtJIXY6voyNRj566PiDq68i1OLY-5AeVngGtA_5OhR7APQmIU9q4bJv7WkigSRmrp6UU0uslpyQ7JlEJll_KdKWdOArmKH3ZNBIYXfGkZjCJaOjnMkRdIV3jl7rOjKX5o6qjneP156QTfkw83vgDVToEfguMg4l38BgtnV2e86PrfJFebdEQNqihp9IAjVvgQZskNH-D6Yk_o4MTWkzeco6HLpYfOOak5pYmrm02O7T9niXo='
 # === Load Cache ===
 cache = {
     "PhotoStrippedSize(type='i', bytes=b'\\x01\\x17(\\xba\\xaf\\x14Q\\x19%!Tw4\\xb2\\xddZ\\xf9gt\\xab\\xc78\\x1c\\x9e*\\x0b\\xa8V{&\\xc9\\xdac\\xf9\\xc1\\xfa\\n\\xc4\\x0e^|\\xbb\\xe3y\\xf9\\x9b\\xeb\\xd6\\x9b\\xdc\\x98\\xad\\x0e\\x82P\\x8d\\x08h\\x8e\\xe0G\\x18\\xaa\\x1eI\\xc9\\x19\\x19\\xf4\\xcdh\"\\xc5\\x1d\\xa2,\\x0c\\nc\\x83\\x9e\\xb5Jf`\\xe4v#\\x14\\xa6\\xae\\xaeiFMK\\x96$8\\xa2\\x9d\\x8a+\\x03\\xbc\\xbd\\x1f*RN\\x8c0q\\xc5\\x12Y\\xda4J\\x9eV\\x02\\x9e\\x08\\xeb\\xf9\\xd1Eu4y)\\xb1\\x93\\x1c\\xb7\\x1ft\\xf1\\x8fJ\\xae\\xd2a\\x8eQ}\\r\\x14VU\\x15\\x99\\xd1Asn4\\xb6\\xe3\\x90\\xa0\\x0cQE\\x15\\x91\\xdb\\x15d\\x7f')": "Abomasnow",
