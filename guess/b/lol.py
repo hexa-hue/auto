@@ -192,33 +192,70 @@ async def send_guess_command():
 
 @client.on(events.NewMessage(from_users=572621020, pattern="Who's that pokemon?", chats=chatid))
 async def guess_pokemon(event):
-    global last_guess_time, pending_guess, reward_count, correct_guess_count, guess_fail_count
+    global temp_cache_size
     pending_guess = False
-    for size in event.message.photo.sizes:
-        if isinstance(size, PhotoStrippedSize):
-            size = str(size)
-            for file in os.listdir("cache/"):
-                with open(f"cache/{file}", 'r') as f:
-                    if f.read() == size:
-                        name = file.replace(".txt", "")
-                        await client.send_message(chatid, "Type: null" if name == "Type_ Null" else name)
-                        reward_count += 5
-                        correct_guess_count += 1
-                        guess_fail_count = 0
-                        await asyncio.sleep(3)
-                        await send_guess_command()
-                        return
-            global temp_cache_size
-            temp_cache_size = size
+    print("[Guess] Received 'Who's that pokemon?' event")
+
+    photo = event.message.photo
+    if not photo:
+        print("[Guess] No photo found in message")
+        return
+
+    # Use the largest available size (most detailed)
+    size_obj = photo.sizes[-1]
+    size_str = str(size_obj)
+    print(f"[Guess] Photo size string: {size_str}")
+
+    cached_files = os.listdir("cache/")
+    print(f"[Guess] Cached files: {cached_files}")
+
+    for file in cached_files:
+        try:
+            with open(f"cache/{file}", 'r') as f:
+                cached_size = f.read()
+            if cached_size == size_str:
+                name = file.replace(".txt", "")
+                send_name = "Type: null" if name == "Type_ Null" else name
+                try:
+                    await client.send_message(chatid, send_name)
+                    print(f"[Guess] Sent guess: {send_name}")
+                except Exception as e:
+                    print(f"[Guess] Failed to send guess: {e}")
+                global reward_count, correct_guess_count, guess_fail_count
+                reward_count += 5
+                correct_guess_count += 1
+                guess_fail_count = 0
+                await asyncio.sleep(3)
+                await send_guess_command()
+                return
+        except Exception as e:
+            print(f"[Guess] Error reading cache file {file}: {e}")
+
+    # If no match found, store this size for saving later
+    temp_cache_size = size_str
+    print("[Guess] No match found, saved size for later")
+
 
 @client.on(events.NewMessage(from_users=572621020, pattern="The pokemon was ", chats=chatid))
 async def save_pokemon(event):
-    global pending_guess, guess_fail_count
+    global pending_guess, guess_fail_count, temp_cache_size
     pending_guess = False
-    name = ((event.message.text).split("The pokemon was **")[1]).split("**")[0]
-    global temp_cache_size
-    with open(f"cache/{name}.txt", 'w') as file:
-        file.write(temp_cache_size)
+
+    try:
+        text = event.message.text
+        name = text.split("The pokemon was **")[1].split("**")[0]
+        print(f"[Save] Pokémon name found: {name}")
+    except Exception as e:
+        print(f"[Save] Failed to extract Pokémon name: {e}")
+        return
+
+    try:
+        with open(f"cache/{name}.txt", 'w') as file:
+            file.write(temp_cache_size)
+        print(f"[Save] Saved size for {name}")
+    except Exception as e:
+        print(f"[Save] Failed to save cache file: {e}")
+
     temp_cache_size = None
     guess_fail_count = 0
     await send_guess_command()
