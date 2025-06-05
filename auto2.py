@@ -38,7 +38,7 @@ class FishingBot:
 
                     if 'your rod is broken' in msg_text:
                         cooldown_time = self.extract_cooldown_time(msg_text)
-                        await self.client.send_message(self.bot_entity, '/dart')
+                        await self.client.send_message(self.bot_entity, '/explore')
                         await asyncio.sleep(cooldown_time)
                         self.response_received = True
                         break
